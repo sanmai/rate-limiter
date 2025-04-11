@@ -1,0 +1,51 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:braces
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  tests:
+    name: Testing with PHP ${{ matrix.php-version }} ${{ matrix.dependencies }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version:
+          - '8.1'
+          - '8.2'
+          - '8.3'
+          - '8.4'
+        dependencies: ['']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ matrix.php-version }}-${{ hashFiles('composer.*') }}
+          restore-keys: |
+            composer-${{ matrix.php-version }}-
+            composer-
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress ${{ matrix.dependencies }}
+
+      - name: Execute tests
+        run: |
+          php vendor/bin/phpunit

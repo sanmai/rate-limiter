@@ -1,0 +1,65 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:braces
+
+name: Code Style
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Code style with PHP ${{ matrix.php-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version:
+          - "8.1"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ matrix.php-version }}-${{ hashFiles('composer.*') }}
+          restore-keys: |
+            composer-${{ matrix.php-version }}-
+            composer-
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-progress
+
+      - name: Validate composer.json
+        run: |
+          composer validate --strict
+
+      - name: Normalize composer.json
+        run: |
+          composer normalize --dry-run --diff
+
+      - name: Restore PHP-CS-Fixer cache
+        uses: actions/cache@v3
+        with:
+          path: build/cache/.php_cs.cache
+          key: php-cs-fixer-${{ matrix.php-version }}-${{ hashFiles('composer.*') }}
+          restore-keys: |
+            php-cs-fixer-${{ matrix.php-version }}-
+            php-cs-fixer-
+
+      - name: Run PHP-CS-Fixer
+        run: |
+          mkdir -p build/cache/
+          vendor/bin/php-cs-fixer fix --diff --dry-run --verbose --cache-file=build/cache/.php_cs.cache

@@ -1,0 +1,47 @@
+{
+    "name": "sanmai/rate-limiter",
+    "description": "Cache-based rate limiter using sliding window algorithm",
+    "license": "GPL-2.0-or-later",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Alexey Kopytko",
+            "email": "alexey@kopytko.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "sanmai/later": "^0.1.5",
+        "sanmai/pipeline": "^6.11",
+        "sanmai/sliding-window-counter": "^0.1"
+    },
+    "require-dev": {
+        "dg/bypass-finals": "^1.9",
+        "ergebnis/composer-normalize": "^2.8",
+        "friendsofphp/php-cs-fixer": "^3.17",
+        "infection/infection": ">=0.10.5",
+        "phan/phan": ">=1.1",
+        "phpstan/phpstan": ">=0.10",
+        "phpunit/phpunit": ">=10 <12",
+        "vimeo/psalm": ">=2"
+    },
+    "autoload": {
+        "psr-4": {
+            "SlidingWindowCounter\\RateLimiter\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\SlidingWindowCounter\\RateLimiter\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": true,
+        "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
+    }
+}

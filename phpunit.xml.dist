@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<phpunit bootstrap="vendor/autoload.php"
+         executionOrder="random"
+         resolveDependencies="true"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         requireCoverageMetadata="true"
+>
+    <testsuites>
+        <testsuite name="Main">
+            <directory>tests/</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">src/</directory>
+        </include>
+    </source>
+
+    <groups>
+        <exclude>
+            <group>integration</group>
+        </exclude>
+    </groups>
+
+    <extensions>
+        <bootstrap class="DG\BypassFinals\PHPUnitExtension"/>
+    </extensions>
+</phpunit>
