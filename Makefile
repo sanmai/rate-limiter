@@ -21,6 +21,11 @@ PHPUNIT_GROUP=default
 PHPUNIT_ARGS=--coverage-xml=build/logs/coverage-xml --log-junit=build/logs/junit.xml $(PHPUNIT_COVERAGE_CLOVER)
 export XDEBUG_MODE=coverage
 
+# PHPStan
+PHPSTAN=vendor/bin/phpstan
+PHPSTAN_ARGS_TESTS=analyse src tests -c .phpstan.neon
+PHPSTAN_ARGS_SRC=analyse -c .phpstan.src.neon
+
 # Psalm
 PSALM=vendor/bin/psalm
 PSALM_ARGS=--show-info=false
@@ -61,7 +66,12 @@ mt: phpunit-coverage prerequisites infection.json.dist
 	$(SILENT) $(PHP) $(INFECTION) $(INFECTION_ARGS)
 
 .PHONY: sa
-sa: psalm
+sa: psalm phpstan
+
+.PHONY: phpstan
+phpstan: cs .phpstan.src.neon .phpstan.neon
+	$(SILENT) $(PHP) $(PHPSTAN) $(PHPSTAN_ARGS_SRC)
+	$(SILENT) $(PHP) $(PHPSTAN) $(PHPSTAN_ARGS_TESTS)
 
 .PHONY: psalm
 psalm: cs psalm.xml.dist prerequisites
