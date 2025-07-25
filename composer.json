@@ -20,8 +20,10 @@
         "friendsofphp/php-cs-fixer": "^3.17",
         "infection/infection": ">=0.10.5",
         "phan/phan": ">=1.1",
+        "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": ">=0.10",
         "phpunit/phpunit": ">=10 <12",
+        "sanmai/phpstan-rules": "^0.3.10",
         "vimeo/psalm": ">=2"
     },
     "autoload": {

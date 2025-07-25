@@ -1,0 +1,7 @@
+parameters:
+    reportUnmatchedIgnoredErrors: false
+    level: 4
+    paths:
+        - src
+        - tests
+    ignoreErrors:
