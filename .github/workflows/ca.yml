@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    name: Static code analysis with PHP ${{ matrix.php-version }}
+    name: Static code analysis
     runs-on: ubuntu-latest
 
     strategy:

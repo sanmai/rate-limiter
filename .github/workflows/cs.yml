@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    name: Code style with PHP ${{ matrix.php-version }}
+    name: Code style
     runs-on: ubuntu-latest
 
     strategy:
