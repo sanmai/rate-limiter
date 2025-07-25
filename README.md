@@ -1,10 +1,8 @@
-# Rate Limiter 🚦⏱️
+# Rate Limiter
 
 [![Latest Stable Version](https://img.shields.io/packagist/v/sanmai/rate-limiter.svg)](https://packagist.org/packages/sanmai/rate-limiter)
 
-## Cache-based API rate limiting for PHP applications
-
-A lightweight, efficient PHP library for controlling request rates and preventing API abuse.
+Cache-based API rate limiting for PHP applications.
 
 ## Table of Contents
 
@@ -31,25 +29,22 @@ composer require sanmai/rate-limiter
 
 ## Overview
 
-Need to prevent API abuse, protect your services from excessive traffic, or implement fair usage policies? This library provides a simple solution for rate limiting with the sliding window approach.
+Rate limiting with the sliding window approach.
 
-**Real-world example:** Imagine you need to limit API requests to 100 per minute and 1000 per hour per client. This library lets you create a rate limiter with a 1-minute window and 1-hour observation period, then check if a client exceeds either of these limits.
+Real-world example: Imagine you need to limit API requests to 100 per minute and 1000 per hour per client. This library lets you create a rate limiter with a 1-minute window and 1-hour observation period, then check if a client exceeds either of these limits.
 
 ## Features
 
-✅ **Two-level limiting** - Window-based and period-based limits<br>
-✅ **Lazy evaluation** - Calculates limits only when needed<br>
-✅ **Simple API** - Easy-to-use interface for rate limiting<br>
-✅ **Detailed feedback** - Clear information about rate limit status<br>
-✅ **Compatible with PHP 8.1+** - Works with modern PHP versions<br>
-✅ **PSR-compatible** - Easily integrates with PSR-15 middleware
+- Two-level limiting - Window-based and period-based limits
+- Lazy evaluation - Calculates limits only when needed
+- PSR-compatible - Easily integrates with PSR-15 middleware
 
 ## How it works (the simple version)
 
 This rate limiter provides two types of limits:
 
-1. **Window limits** - Controls request rates in the most recent time window (e.g., 100 requests per minute)
-2. **Period limits** - Controls total requests over a longer observation period (e.g., 1000 requests per hour)
+1. Window limits - Controls request rates in the most recent time window (e.g., 100 requests per minute)
+2. Period limits - Controls total requests over a longer observation period (e.g., 1000 requests per hour)
 
 The rate limiter itself tracks requests, while the limits are set when checking if they've been exceeded.
 
@@ -245,43 +240,7 @@ try {
 
 ## Cache Adapters
 
-This library uses the cache adapters provided by the `sanmai/sliding-window-counter` package. For information about available adapters and how to create your own, please refer to the [sliding window counter documentation](https://github.com/sanmai/sliding-window-counter).
-
-## Technical Details
-
-This rate limiter is built on top of the [sliding window counter](https://github.com/sanmai/sliding-window-counter) library, which provides an efficient implementation of the sliding window algorithm.
-
-### How the Sliding Window Algorithm Works
-
-Unlike fixed window rate limiting (which can allow bursts of traffic at window boundaries), the sliding window approach provides smoother rate limiting by considering a continuously moving time window.
-
-The key components of this rate limiter are:
-
-- **Window Size**: Defines the duration of a single time window (e.g., 60 seconds)
-- **Observation Period**: Defines the total period over which to track requests (e.g., 3600 seconds)
-- **Window Limit**: Controls the rate of requests in the most recent time window
-- **Period Limit**: Controls the total number of requests over the entire observation period
-- **Lazy Evaluation**: Limits are only calculated when checked, improving performance
-
-The library uses deferred evaluation through the `sanmai/later` package to ensure efficient processing, only calculating limits when they're actually needed.
-
-### Requirements
-
-- PHP 8.1 or higher
-
-For more detailed technical information about how the sliding window algorithm works, please refer to the [sliding window counter documentation](https://github.com/sanmai/sliding-window-counter).
-
-## Contributing
-
-Contributions are welcome! Here are some ways you can contribute:
-
-- Report bugs by creating an issue
-- Suggest new features or improvements
-- Submit pull requests with bug fixes or new features
-- Improve documentation
-- Write tests
-
-Please ensure your code follows the existing style and includes appropriate tests.
+This library uses the cache adapters provided by the `sanmai/sliding-window-counter` library. For information about available adapters and how to create your own, please refer to the [sliding window counter documentation](https://github.com/sanmai/sliding-window-counter).
 
 ## License
 
