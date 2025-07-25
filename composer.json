@@ -1,7 +1,7 @@
 {
     "name": "sanmai/rate-limiter",
     "description": "Cache-based rate limiter using sliding window algorithm",
-    "license": "GPL-2.0-or-later",
+    "license": "Apache-2.0",
     "type": "library",
     "authors": [
         {
@@ -10,13 +10,12 @@
         }
     ],
     "require": {
-        "php": "^8.1",
+        "php": "^8.2",
         "sanmai/later": "^0.1.5",
-        "sanmai/pipeline": "^6.11",
-        "sanmai/sliding-window-counter": "^0.1"
+        "sanmai/pipeline": "^6.11 || ^7.0",
+        "sanmai/sliding-window-counter": "^0.2",
     },
     "require-dev": {
-        "dg/bypass-finals": "^1.9",
         "ergebnis/composer-normalize": "^2.8",
         "friendsofphp/php-cs-fixer": "^3.17",
         "infection/infection": ">=0.10.5",
