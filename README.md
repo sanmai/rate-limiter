@@ -1,7 +1,6 @@
 # Rate Limiter 🚦⏱️
 
 [![Latest Stable Version](https://img.shields.io/packagist/v/sanmai/rate-limiter.svg)](https://packagist.org/packages/sanmai/rate-limiter)
-[![License](https://img.shields.io/badge/license-GPL--2.0-blue.svg)](https://github.com/sanmai/rate-limiter/blob/master/LICENSE)
 
 ## Cache-based API rate limiting for PHP applications
 
