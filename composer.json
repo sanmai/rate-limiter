@@ -13,7 +13,7 @@
         "php": "^8.2",
         "sanmai/later": "^0.1.5",
         "sanmai/pipeline": "^6.11 || ^7.0",
-        "sanmai/sliding-window-counter": "^0.2",
+        "sanmai/sliding-window-counter": "^0.1 || ^0.2"
     },
     "require-dev": {
         "ergebnis/composer-normalize": "^2.8",
