@@ -244,4 +244,6 @@ This library uses the cache adapters provided by the `sanmai/sliding-window-coun
 
 ## License
 
-This library is licensed under the GNU General Public License v2.0. See the [LICENSE](LICENSE) file for details.
+[![License](https://poser.pugx.org/sanmai/rate-limiter/license)](https://packagist.org/packages/sanmai/rate-limiter)
+
+See the [LICENSE](LICENSE) file for details.
