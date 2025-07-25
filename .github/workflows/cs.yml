@@ -11,13 +11,13 @@ on:
 
 jobs:
   build:
-    name: Code style with PHP ${{ matrix.php-version }}
+    name: Code style
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         php-version:
-          - "8.1"
+          - "8.2"
 
     steps:
       - uses: actions/checkout@v3

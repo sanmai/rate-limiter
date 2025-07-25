@@ -13,13 +13,13 @@ permissions: read-all
 
 jobs:
   build:
-    name: Mutatation testing with PHP ${{ matrix.php-version }}
+    name: Mutatation testing
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         php-version:
-          - "8.3"
+          - "8.4"
 
     steps:
       - uses: actions/checkout@v3
