@@ -34,8 +34,6 @@ use function Pipeline\take;
  */
 class RateLimiter
 {
-    private const NANOSECONDS_PER_SECOND = 1_000_000_000;
-
     /**
      * Creates a new RateLimiter instance.
      */
@@ -142,7 +140,7 @@ class RateLimiter
             later(fn() => yield $this->getLatestValue()),
             $window_limit,
             'window',
-            $this->window_size * self::NANOSECONDS_PER_SECOND
+            $this->window_size
         );
     }
 
@@ -178,7 +176,7 @@ class RateLimiter
             later(fn() => yield $this->getTotal()),
             $period_limit,
             'period',
-            $this->window_size * self::NANOSECONDS_PER_SECOND
+            $this->window_size
         );
     }
 }
