@@ -20,8 +20,6 @@ declare(strict_types=1);
 
 namespace SlidingWindowCounter\RateLimiter;
 
-use DuoClock\DuoClock;
-use DuoClock\Interfaces\DuoClockInterface;
 use SlidingWindowCounter\Cache;
 use SlidingWindowCounter\SlidingWindowCounter;
 
@@ -60,15 +58,13 @@ class RateLimiter
      * @param int<1, max> $window_size The size of the sliding window.
      * @param int<1, max> $observation_period The observation period.
      * @param Cache\CounterCache $counter_cache The counter cache instance.
-     * @param DuoClockInterface|null $clock Optional clock instance for time operations.
      */
     public static function create(
         string $subject,
         string $cache_name,
         int $window_size,
         int $observation_period,
-        Cache\CounterCache $counter_cache,
-        ?DuoClockInterface $clock = null
+        Cache\CounterCache $counter_cache
     ): self {
         return new self(
             $subject,
@@ -76,8 +72,7 @@ class RateLimiter
                 $cache_name,
                 $window_size,
                 $observation_period,
-                $counter_cache,
-                $clock ?? new DuoClock()
+                $counter_cache
             ),
             $window_size
         );
