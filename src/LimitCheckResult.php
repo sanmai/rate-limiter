@@ -200,7 +200,6 @@ class LimitCheckResult
             return 0;
         }
 
-
         return $this->getWaitTimeRaw();
     }
 }
