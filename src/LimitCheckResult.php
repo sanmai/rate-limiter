@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+declare(strict_types=1);
+
 namespace SlidingWindowCounter\RateLimiter;
 
 use Later\Interfaces\Deferred;
@@ -51,8 +53,7 @@ class LimitCheckResult
          * A descriptive name for this limit type (e.g., "window", "period").
          */
         private readonly string $limit_type
-    ) {
-    }
+    ) {}
 
     /**
      * Checks if the limit is exceeded.

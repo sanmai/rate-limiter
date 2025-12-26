@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+declare(strict_types=1);
+
 namespace SlidingWindowCounter\RateLimiter;
 
 use SlidingWindowCounter\SlidingWindowCounter;
@@ -41,8 +43,7 @@ class RateLimiter
          * The sliding window counter instance.
          */
         private readonly SlidingWindowCounter $counter
-    ) {
-    }
+    ) {}
 
     /**
      * Builds a new RateLimiter instance using the provided counter cache.
@@ -124,7 +125,7 @@ class RateLimiter
     {
         return new LimitCheckResult(
             $this->subject,
-            later(fn () => yield $this->getLatestValue()),
+            later(fn() => yield $this->getLatestValue()),
             $window_limit,
             'window'
         );
@@ -159,7 +160,7 @@ class RateLimiter
     {
         return new LimitCheckResult(
             $this->subject,
-            later(fn () => yield $this->getTotal()),
+            later(fn() => yield $this->getTotal()),
             $period_limit,
             'period'
         );
