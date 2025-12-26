@@ -88,7 +88,7 @@ if ($windowResult->isLimitExceeded()) {
     echo $windowResult->getLimitExceededMessage();
     // Example output: "Rate limit exceeded for 192.168.1.1: 120 actions in the window (limit: 100)"
 
-    // Return 429 Too Many Requests response with calculated wait time
+    // Return 429 Too Many Requests response
     header('HTTP/1.1 429 Too Many Requests');
     header(sprintf('Retry-After: %d', $windowResult->getWaitTimeSeconds()));
     exit;
@@ -101,7 +101,7 @@ if ($periodResult->isLimitExceeded()) {
     // Period limit exceeded - client has sent too many requests in the observation period
     echo $periodResult->getLimitExceededMessage();
 
-    // Return 429 Too Many Requests response with calculated wait time
+    // Return 429 Too Many Requests response
     header('HTTP/1.1 429 Too Many Requests');
     header(sprintf('Retry-After: %d', $periodResult->getWaitTimeSeconds()));
     exit;
@@ -186,13 +186,8 @@ foreach ($items as $item) {
 
     $result = $rateLimiter->checkWindowLimit(100);
     if ($result->isLimitExceeded()) {
-        // Wait until the rate limit resets (seconds, rounded up)
-        sleep($result->getWaitTimeSeconds());
-    }
-
-    // For precise timing, use nanoseconds with DuoClock
-    $result = $rateLimiter->checkWindowLimit(100);
-    if ($result->isLimitExceeded()) {
+        // Wait until the rate limit resets
+        // For precise timing, using nanoseconds with DuoClock
         $clock->nanosleep($result->getWaitTime());
     }
 
@@ -200,7 +195,7 @@ foreach ($items as $item) {
 }
 ```
 
-If you're not using DuoClock, you can use PHP's `time_nanosleep()` directly:
+If you're not using [DuoClock](https://github.com/sanmai/DuoClock), you can use PHP's `time_nanosleep()` directly:
 
 ```php
 $ns = $result->getWaitTime();
