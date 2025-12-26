@@ -140,12 +140,12 @@ class LimitCheckResult
      * parameter to spread out retries and avoid thundering herd problems.
      * The jitter adds a random delay of up to (wait_time * jitter_factor).
      *
-     * Usage:
-     *   // Without jitter
-     *   usleep($result->getWaitTime() / 1000);
+     * Usage with DuoClock (recommended):
+     *   $clock->nanosleep($result->getWaitTime());
+     *   $clock->nanosleep($result->getWaitTime(0.5)); // with jitter
      *
-     *   // With jitter (recommended for multiple workers)
-     *   $ns = $result->getWaitTime(0.5); // adds 0-50% random delay
+     * Usage with PHP's time_nanosleep():
+     *   $ns = $result->getWaitTime();
      *   time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
      *
      * @param float $jitter_factor Jitter factor (0.0 = no jitter, 0.5 = up to 50% extra delay).
@@ -174,7 +174,7 @@ class LimitCheckResult
      * Usage:
      *   sleep($result->getWaitTimeSeconds());
      *   // or for Retry-After header
-     *   header('Retry-After: ' . $result->getWaitTimeSeconds());
+     *   header(sprintf('Retry-After: %d', $result->getWaitTimeSeconds()));
      *
      * @return int Seconds to wait (rounded up), or 0 if limit is not exceeded.
      */

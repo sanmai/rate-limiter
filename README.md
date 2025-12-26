@@ -90,7 +90,7 @@ if ($windowResult->isLimitExceeded()) {
 
     // Return 429 Too Many Requests response with calculated wait time
     header('HTTP/1.1 429 Too Many Requests');
-    header('Retry-After: ' . $windowResult->getWaitTimeSeconds());
+    header(sprintf('Retry-After: %d', $windowResult->getWaitTimeSeconds()));
     exit;
 }
 
@@ -103,7 +103,7 @@ if ($periodResult->isLimitExceeded()) {
 
     // Return 429 Too Many Requests response with calculated wait time
     header('HTTP/1.1 429 Too Many Requests');
-    header('Retry-After: ' . $periodResult->getWaitTimeSeconds());
+    header(sprintf('Retry-After: %d', $periodResult->getWaitTimeSeconds()));
     exit;
 }
 ```
