@@ -20,6 +20,7 @@ namespace SlidingWindowCounter\RateLimiter;
 use Later\Interfaces\Deferred;
 
 use function sprintf;
+use function ceil;
 
 /**
  * Class representing the result of a rate limit check.
@@ -50,7 +51,13 @@ class LimitCheckResult
         /**
          * A descriptive name for this limit type (e.g., "window", "period").
          */
-        private readonly string $limit_type
+        private readonly string $limit_type,
+
+        /**
+         * Nanoseconds to wait before the rate limit resets.
+         * @var Deferred<int>
+         */
+        private readonly Deferred $wait_time_ns
     ) {
     }
 
@@ -122,5 +129,46 @@ class LimitCheckResult
             $this->limit_type,
             $this->limit
         );
+    }
+
+    /**
+     * Returns nanoseconds to wait before the rate limit resets.
+     * Returns 0 if limit is not exceeded.
+     *
+     * Usage:
+     *   usleep($result->getWaitTimeNs() / 1000);
+     *   // or
+     *   $ns = $result->getWaitTimeNs();
+     *   time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
+     *
+     * @return int Nanoseconds to wait, or 0 if limit is not exceeded.
+     */
+    public function getWaitTimeNs(): int
+    {
+        if (!$this->isLimitExceeded()) {
+            return 0;
+        }
+
+        return $this->wait_time_ns->get();
+    }
+
+    /**
+     * Returns seconds to wait before the rate limit resets (rounded up).
+     * Returns 0 if limit is not exceeded.
+     *
+     * Usage:
+     *   sleep($result->getWaitTime());
+     *   // or for Retry-After header
+     *   header('Retry-After: ' . $result->getWaitTime());
+     *
+     * @return int Seconds to wait (rounded up), or 0 if limit is not exceeded.
+     */
+    public function getWaitTime(): int
+    {
+        if (!$this->isLimitExceeded()) {
+            return 0;
+        }
+
+        return (int) ceil($this->wait_time_ns->get() / 1_000_000_000);
     }
 }

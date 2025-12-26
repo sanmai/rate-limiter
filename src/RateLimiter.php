@@ -17,11 +17,14 @@
 
 namespace SlidingWindowCounter\RateLimiter;
 
-use SlidingWindowCounter\SlidingWindowCounter;
+use DuoClock\DuoClock;
+use DuoClock\Interfaces\DuoClockInterface;
 use SlidingWindowCounter\Cache;
+use SlidingWindowCounter\SlidingWindowCounter;
 
 use function Later\later;
 use function Pipeline\take;
+use function floor;
 
 /**
  * A rate limiter.
@@ -40,7 +43,15 @@ class RateLimiter
         /**
          * The sliding window counter instance.
          */
-        private readonly SlidingWindowCounter $counter
+        private readonly SlidingWindowCounter $counter,
+        /**
+         * The size of the sliding window in seconds.
+         */
+        private readonly int $window_size,
+        /**
+         * The clock instance for time operations.
+         */
+        private readonly DuoClockInterface $clock
     ) {
     }
 
@@ -51,22 +62,29 @@ class RateLimiter
      * @param int $window_size The size of the sliding window.
      * @param int $observation_period The observation period.
      * @param Cache\CounterCache $counter_cache The counter cache instance.
+     * @param DuoClockInterface|null $clock Optional clock instance for time operations.
      */
     public static function create(
         string $subject,
         string $cache_name,
         int $window_size,
         int $observation_period,
-        Cache\CounterCache $counter_cache
+        Cache\CounterCache $counter_cache,
+        ?DuoClockInterface $clock = null
     ): self {
+        $clock ??= new DuoClock();
+
         return new self(
             $subject,
             new SlidingWindowCounter(
                 $cache_name,
                 $window_size,
                 $observation_period,
-                $counter_cache
-            )
+                $counter_cache,
+                $clock
+            ),
+            $window_size,
+            $clock
         );
     }
 
@@ -126,7 +144,8 @@ class RateLimiter
             $this->subject,
             later(fn () => yield $this->getLatestValue()),
             $window_limit,
-            'window'
+            'window',
+            later(fn () => yield $this->getWindowWaitTimeNs())
         );
     }
 
@@ -161,7 +180,27 @@ class RateLimiter
             $this->subject,
             later(fn () => yield $this->getTotal()),
             $period_limit,
-            'period'
+            'period',
+            later(fn () => yield $this->getPeriodWaitTimeNs())
         );
+    }
+
+    /**
+     * Calculates nanoseconds until the current window boundary ends.
+     */
+    private function getWindowWaitTimeNs(): int
+    {
+        $microtime = $this->clock->microtime();
+        $window_end_time = (floor($microtime / $this->window_size) + 1) * $this->window_size;
+
+        return (int) (($window_end_time - $microtime) * 1_000_000_000);
+    }
+
+    /**
+     * Calculates nanoseconds to wait for period limit (one full window).
+     */
+    private function getPeriodWaitTimeNs(): int
+    {
+        return $this->window_size * 1_000_000_000;
     }
 }
