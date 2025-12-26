@@ -176,7 +176,10 @@ $sensitivePeriodResult = $sensitiveLimiter->checkPeriodLimit(50);
 When you control both ends (e.g., a background job calling your own API), you can use the wait time to self-throttle instead of failing:
 
 ```php
-$rateLimiter = RateLimiter::create($jobId, 'batch_processing', 60, 3600, $cache);
+use DuoClock\DuoClock;
+
+$clock = new DuoClock();
+$rateLimiter = RateLimiter::create($jobId, 'batch_processing', 60, 3600, $cache, $clock);
 
 foreach ($items as $item) {
     $rateLimiter->increment();
@@ -187,15 +190,21 @@ foreach ($items as $item) {
         sleep($result->getWaitTimeSeconds());
     }
 
-    // For precise timing, use nanoseconds
+    // For precise timing, use nanoseconds with DuoClock
     $result = $rateLimiter->checkWindowLimit(100);
     if ($result->isLimitExceeded()) {
-        $ns = $result->getWaitTime();
-        time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
+        $clock->nanosleep($result->getWaitTime());
     }
 
     processItem($item);
 }
+```
+
+If you're not using DuoClock, you can use PHP's `time_nanosleep()` directly:
+
+```php
+$ns = $result->getWaitTime();
+time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
 ```
 
 When multiple workers compete for the same rate limit, use jitter to spread out retries and avoid thundering herd:
@@ -204,8 +213,7 @@ When multiple workers compete for the same rate limit, use jitter to spread out 
 $result = $rateLimiter->checkWindowLimit(100);
 if ($result->isLimitExceeded()) {
     // Add up to 50% random delay to spread out competing workers
-    $ns = $result->getWaitTime(0.5);
-    time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
+    $clock->nanosleep($result->getWaitTime(0.5));
 }
 ```
 
