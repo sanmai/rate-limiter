@@ -26,10 +26,6 @@ PHPSTAN=vendor/bin/phpstan
 PHPSTAN_ARGS_TESTS=analyse src tests -c .phpstan.neon
 PHPSTAN_ARGS_SRC=analyse -c .phpstan.src.neon
 
-# Psalm
-PSALM=vendor/bin/psalm
-PSALM_ARGS=--show-info=false
-
 # Composer
 COMPOSER=$(PHP) $(shell which composer)
 
@@ -66,16 +62,12 @@ mt: phpunit-coverage prerequisites infection.json.dist
 	$(SILENT) $(PHP) $(INFECTION) $(INFECTION_ARGS)
 
 .PHONY: sa
-sa: psalm phpstan
+sa: phpstan
 
 .PHONY: phpstan
 phpstan: cs .phpstan.src.neon .phpstan.neon
 	$(SILENT) $(PHP) $(PHPSTAN) $(PHPSTAN_ARGS_SRC)
 	$(SILENT) $(PHP) $(PHPSTAN) $(PHPSTAN_ARGS_TESTS)
-
-.PHONY: psalm
-psalm: cs psalm.xml.dist prerequisites
-	$(SILENT) $(PHP) $(PSALM) $(PSALM_ARGS)
 
 .PHONY: cs
 cs: prerequisites
