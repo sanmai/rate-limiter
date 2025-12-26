@@ -142,7 +142,7 @@ class LimitCheckResult
         // Assuming uniform distribution: we need to wait out X% of the window
         $excessRatio = ($this->count->get() - $this->limit) / $this->count->get();
 
-        // To maintain numeric stability multiply only after
+        // To maintain numeric stability multiply only after (dealing with 1e9 scale here)
         return (int) ceil($scale * $this->window_size * $excessRatio);
     }
 
