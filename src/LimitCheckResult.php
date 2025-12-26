@@ -32,6 +32,9 @@ use function sprintf;
  */
 class LimitCheckResult
 {
+    private const NANOSECONDS_PER_SECOND = 1_000_000_000;
+    private const JITTER_PRECISION = 1000;
+
     /**
      * Creates a new limit check result.
      */
@@ -151,7 +154,6 @@ class LimitCheckResult
      *   time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
      *
      * @param float $jitter_factor Jitter factor (0.0 = no jitter, 0.5 = up to 50% extra delay).
-     * @phpstan-param float<0, max> $jitter_factor
      * @return int Nanoseconds to wait, or 0 if limit is not exceeded.
      */
     public function getWaitTime(float $jitter_factor = 0.0): int
@@ -163,7 +165,7 @@ class LimitCheckResult
         $wait = $this->wait_time_ns->get();
 
         if ($jitter_factor > 0.0) {
-            $jitter = (int) ($wait * $jitter_factor * random_int(0, 1000) / 1000);
+            $jitter = (int) ($wait * $jitter_factor * random_int(0, self::JITTER_PRECISION) / self::JITTER_PRECISION);
             $wait += $jitter;
         }
 
@@ -187,6 +189,6 @@ class LimitCheckResult
             return 0;
         }
 
-        return (int) ceil($this->wait_time_ns->get() / 1_000_000_000);
+        return (int) ceil($this->wait_time_ns->get() / self::NANOSECONDS_PER_SECOND);
     }
 }
