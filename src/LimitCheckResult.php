@@ -47,6 +47,7 @@ class LimitCheckResult
 
         /**
          * Maximum limit value.
+         * @var int<1, max>
          */
         private readonly int $limit,
 
