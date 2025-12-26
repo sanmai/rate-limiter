@@ -151,6 +151,7 @@ class LimitCheckResult
      *   time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
      *
      * @param float $jitter_factor Jitter factor (0.0 = no jitter, 0.5 = up to 50% extra delay).
+     * @phpstan-param float<0, max> $jitter_factor
      * @return int Nanoseconds to wait, or 0 if limit is not exceeded.
      */
     public function getWaitTime(float $jitter_factor = 0.0): int
