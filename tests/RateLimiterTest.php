@@ -181,8 +181,6 @@ final class RateLimiterTest extends TestCase
     public function testWindowWaitTimeIsWithinWindowSize(): void
     {
         $window_size = 60;
-        $clock_mock = $this->createMock(DuoClockInterface::class);
-        $clock_mock->method('microtime')->willReturn(12345.5);
 
         $counter_mock = $this->getMockBuilder(SlidingWindowCounter::class)
             ->disableOriginalConstructor()

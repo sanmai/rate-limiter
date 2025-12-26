@@ -149,4 +149,19 @@ final class LimitCheckResultTest extends TestCase
         // Rounds up to 1 second
         $this->assertSame(1, $result->getWaitTimeSeconds());
     }
+
+    public function testGetWaitTimeWhenCountEqualsLimit(): void
+    {
+        // count=100, limit=100, window=60s
+        // excessRatio = (100 - 100) / 100 = 0
+        // wait = 0 * 60 = 0 seconds
+        $window_size = 60;
+        $result = new LimitCheckResult('test', now(100), 100, 'window', $window_size);
+
+        // Limit is exceeded (count >= limit)
+        $this->assertTrue($result->isLimitExceeded());
+        // But wait time is 0 (no excess to shed)
+        $this->assertSame(0, $result->getWaitTime());
+        $this->assertSame(0, $result->getWaitTimeSeconds());
+    }
 }
