@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+declare(strict_types=1);
+
 namespace SlidingWindowCounter\RateLimiter;
 
 use DuoClock\DuoClock;
@@ -52,8 +54,7 @@ class RateLimiter
          * The clock instance for time operations.
          */
         private readonly DuoClockInterface $clock
-    ) {
-    }
+    ) {}
 
     /**
      * Builds a new RateLimiter instance using the provided counter cache.
@@ -142,10 +143,10 @@ class RateLimiter
     {
         return new LimitCheckResult(
             $this->subject,
-            later(fn () => yield $this->getLatestValue()),
+            later(fn() => yield $this->getLatestValue()),
             $window_limit,
             'window',
-            later(fn () => yield $this->getWindowWaitTimeNs())
+            later(fn() => yield $this->getWindowWaitTimeNs())
         );
     }
 
@@ -178,10 +179,10 @@ class RateLimiter
     {
         return new LimitCheckResult(
             $this->subject,
-            later(fn () => yield $this->getTotal()),
+            later(fn() => yield $this->getTotal()),
             $period_limit,
             'period',
-            later(fn () => yield $this->getPeriodWaitTimeNs())
+            later(fn() => yield $this->getPeriodWaitTimeNs())
         );
     }
 

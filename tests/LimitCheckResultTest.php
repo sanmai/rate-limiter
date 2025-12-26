@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+<?php
 /**
  * Copyright 2025 Alexey Kopytko <alexey@kopytko.com>
  *
@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+declare(strict_types=1);
 
 namespace Tests\SlidingWindowCounter;
 

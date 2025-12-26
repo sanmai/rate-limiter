@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+declare(strict_types=1);
+
 namespace SlidingWindowCounter\RateLimiter;
 
 use Later\Interfaces\Deferred;
@@ -59,8 +61,7 @@ class LimitCheckResult
          * @var Deferred<int>
          */
         private readonly Deferred $wait_time_ns
-    ) {
-    }
+    ) {}
 
     /**
      * Checks if the limit is exceeded.

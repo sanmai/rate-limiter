@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+<?php
 /**
  * Copyright 2025 Alexey Kopytko <alexey@kopytko.com>
  *
@@ -15,27 +15,18 @@
  * limitations under the License.
  */
 
+declare(strict_types=1);
+
 namespace Tests\SlidingWindowCounter\RateLimiter;
 
 use DuoClock\DuoClock;
 use DuoClock\Interfaces\DuoClockInterface;
 use DuoClock\TimeSpy;
 use SlidingWindowCounter\Cache\CounterCache;
-use SlidingWindowCounter\Helper\Frame;
 use SlidingWindowCounter\SlidingWindowCounter;
 use SlidingWindowCounter\RateLimiter\RateLimiter;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use ReflectionMethod;
-use Tests\SlidingWindowCounter\Cache\FakeCache;
-use Tumblr\Chorus\FakeTimeKeeper;
 
-use function array_keys;
-use function iterator_to_array;
-use function max;
-use function Pipeline\take;
-use function range;
-use function sprintf;
 use function array_sum;
 
 /**

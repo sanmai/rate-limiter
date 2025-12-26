@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+<?php
 /**
  * Copyright 2025 Alexey Kopytko <alexey@kopytko.com>
  *
@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+declare(strict_types=1);
 
 $header = <<<'EOF'
     Copyright 2025 Alexey Kopytko <alexey@kopytko.com>
@@ -35,14 +37,19 @@ $config = new PhpCsFixer\Config();
 $config
     ->setRiskyAllowed(true)
     ->setRules([
-        'header_comment' => [
-            'comment_type' => 'PHPDoc',
-            'header' => $header,
-            'separate' => 'bottom',
-            'location' => 'after_declare_strict',
+        'header_comment' => ['comment_type' => 'PHPDoc', 'header' => $header, 'separate' => 'bottom', 'location' => 'after_open'],
+        '@PER-CS' => true,
+        '@PER-CS:risky' => true,
+
+        '@PHPUnit100Migration:risky' => true,
+        '@PHP82Migration' => true,
+        'no_unused_imports' => true,
+        'declare_strict_types' => true,
+
+        'native_constant_invocation' => [
+            'strict' => false,
+            'scope' => 'namespaced',
         ],
-        '@PER-CS1.0' => true,
-        'array_indentation' => true,
         'native_function_invocation' => [
             'include' => ['@internal'],
             'scope' => 'namespaced',
@@ -52,9 +59,12 @@ $config
             'import_constants' => true,
             'import_functions' => true,
         ],
+
+        'strict_comparison' => true,
+        'yoda_style' => true,
+        'array_indentation' => true,
+
         'declare_equal_normalize' => ['space' => 'none'],
-        'blank_line_after_opening_tag' => false,
-        'linebreak_after_opening_tag' => false,
         'nullable_type_declaration_for_default_null_value' => true,
     ])
     ->setFinder(
