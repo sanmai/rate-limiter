@@ -50,8 +50,8 @@ class RateLimiter
      * Builds a new RateLimiter instance using the provided counter cache.
      * @param string $subject The subject being rate limited (e.g., IP address, ASN).
      * @param string $cache_name The name of the cache.
-     * @param int $window_size The size of the sliding window.
-     * @param int $observation_period The observation period.
+     * @param int<1, max> $window_size The size of the sliding window.
+     * @param int<1, max> $observation_period The observation period.
      * @param Cache\CounterCache $counter_cache The counter cache instance.
      */
     public static function create(
@@ -110,7 +110,7 @@ class RateLimiter
      * This method only evaluates the latest window count when the result object's
      * methods are called, providing efficient performance through lazy evaluation.
      *
-     * @param int $window_limit The maximum number of requests allowed in the current window.
+     * @param int<1, max> $window_limit The maximum number of requests allowed in the current window.
      * @return LimitCheckResult A result object containing the limit check information.
      *                          Use isLimitExceeded() on this object to determine if the limit was exceeded.
      *
@@ -145,7 +145,7 @@ class RateLimiter
      * Note that calculating the period limit may be more resource-intensive than
      * the window limit as it aggregates data across multiple windows.
      *
-     * @param int $period_limit The maximum number of requests allowed in the entire observation period.
+     * @param int<1, max> $period_limit The maximum number of requests allowed in the entire observation period.
      * @return LimitCheckResult A result object containing the limit check information.
      *                          Use isLimitExceeded() on this object to determine if the limit was exceeded.
      *
