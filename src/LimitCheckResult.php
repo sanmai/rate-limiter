@@ -148,7 +148,8 @@ class LimitCheckResult
     }
 
     /**
-     * Returns nanoseconds to wait before the rate limit resets.
+     * Returns estimated nanoseconds to wait for the count to drop below the limit.
+     * Assumes uniform request distribution across the window.
      * Returns 0 if limit is not exceeded.
      *
      * When multiple workers compete for the same time slot, use the jitter_factor
@@ -184,7 +185,8 @@ class LimitCheckResult
     }
 
     /**
-     * Returns seconds to wait before the rate limit resets (rounded up).
+     * Returns estimated seconds to wait for the count to drop below the limit (rounded up).
+     * Assumes uniform request distribution across the window.
      * Returns 0 if limit is not exceeded.
      *
      * Usage:
