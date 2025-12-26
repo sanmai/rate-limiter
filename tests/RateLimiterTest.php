@@ -187,7 +187,7 @@ final class RateLimiterTest extends TestCase
         $this->assertSame('period', $result->getLimitType());
     }
 
-    public function testWindowWaitTimeNsIsWithinWindowSize(): void
+    public function testWindowWaitTimeIsWithinWindowSize(): void
     {
         $window_size = 60;
         $clock_mock = $this->createMock(DuoClockInterface::class);
@@ -203,12 +203,12 @@ final class RateLimiterTest extends TestCase
 
         $this->assertTrue($result->isLimitExceeded());
 
-        $wait_time_ns = $result->getWaitTimeNs();
+        $wait_time_ns = $result->getWaitTime();
         $this->assertGreaterThan(0, $wait_time_ns);
         $this->assertLessThanOrEqual($window_size * 1_000_000_000, $wait_time_ns);
     }
 
-    public function testWindowWaitTimeNsCalculation(): void
+    public function testWindowWaitTimeCalculation(): void
     {
         $window_size = 60;
         // At time 12345.5, the current window started at 12300 (12345 - 12345 % 60 = 12300)
@@ -227,10 +227,10 @@ final class RateLimiterTest extends TestCase
         $this->assertTrue($result->isLimitExceeded());
 
         // Expected: (12360 - 12345.5) * 1_000_000_000 = 14.5 * 1_000_000_000 = 14_500_000_000
-        $this->assertSame(14_500_000_000, $result->getWaitTimeNs());
+        $this->assertSame(14_500_000_000, $result->getWaitTime());
     }
 
-    public function testPeriodWaitTimeNsIsOneWindow(): void
+    public function testPeriodWaitTimeIsOneWindow(): void
     {
         $window_size = 60;
         $clock_mock = $this->createMock(DuoClockInterface::class);
@@ -246,10 +246,10 @@ final class RateLimiterTest extends TestCase
         $this->assertTrue($result->isLimitExceeded());
 
         // Period wait time is always one full window
-        $this->assertSame($window_size * 1_000_000_000, $result->getWaitTimeNs());
+        $this->assertSame($window_size * 1_000_000_000, $result->getWaitTime());
     }
 
-    public function testWaitTimeNsReturnsZeroWhenLimitNotExceeded(): void
+    public function testWaitTimeReturnsZeroWhenLimitNotExceeded(): void
     {
         $clock_mock = $this->createMock(DuoClockInterface::class);
         $clock_mock->method('microtime')->willReturn(12345.5);
@@ -263,6 +263,6 @@ final class RateLimiterTest extends TestCase
         $result = $rate_limiter->checkWindowLimit(100);
 
         $this->assertFalse($result->isLimitExceeded());
-        $this->assertSame(0, $result->getWaitTimeNs());
+        $this->assertSame(0, $result->getWaitTime());
     }
 }

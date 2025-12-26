@@ -56,35 +56,6 @@ final class LimitCheckResultTest extends TestCase
         );
     }
 
-    public function testGetWaitTimeNsReturnsZeroWhenLimitNotExceeded(): void
-    {
-        $result = new LimitCheckResult('test', now(1), 2, 'window', now(500_000_000));
-
-        $this->assertFalse($result->isLimitExceeded());
-        $this->assertSame(0, $result->getWaitTimeNs());
-    }
-
-    public function testGetWaitTimeNsReturnsValueWhenLimitExceeded(): void
-    {
-        $wait_time_ns = 1_500_000_000;
-        $result = new LimitCheckResult('test', now(3), 2, 'window', now($wait_time_ns));
-
-        $this->assertTrue($result->isLimitExceeded());
-        $this->assertSame($wait_time_ns, $result->getWaitTimeNs());
-    }
-
-    public function testGetWaitTimeNsWithDeferredValue(): void
-    {
-        $deferred = \Later\later(function () {
-            yield 1_000_000_000;
-        });
-
-        $result = new LimitCheckResult('test', now(3), 2, 'window', $deferred);
-
-        $this->assertTrue($result->isLimitExceeded());
-        $this->assertSame(1_000_000_000, $result->getWaitTimeNs());
-    }
-
     public function testGetWaitTimeReturnsZeroWhenLimitNotExceeded(): void
     {
         $result = new LimitCheckResult('test', now(1), 2, 'window', now(500_000_000));
@@ -93,30 +64,81 @@ final class LimitCheckResultTest extends TestCase
         $this->assertSame(0, $result->getWaitTime());
     }
 
-    public function testGetWaitTimeRoundsUp(): void
+    public function testGetWaitTimeReturnsValueWhenLimitExceeded(): void
+    {
+        $wait_time_ns = 1_500_000_000;
+        $result = new LimitCheckResult('test', now(3), 2, 'window', now($wait_time_ns));
+
+        $this->assertTrue($result->isLimitExceeded());
+        $this->assertSame($wait_time_ns, $result->getWaitTime());
+    }
+
+    public function testGetWaitTimeWithDeferredValue(): void
+    {
+        $deferred = \Later\later(function () {
+            yield 1_000_000_000;
+        });
+
+        $result = new LimitCheckResult('test', now(3), 2, 'window', $deferred);
+
+        $this->assertTrue($result->isLimitExceeded());
+        $this->assertSame(1_000_000_000, $result->getWaitTime());
+    }
+
+    public function testGetWaitTimeWithJitter(): void
+    {
+        $wait_time_ns = 10_000_000_000; // 10 seconds
+        $result = new LimitCheckResult('test', now(3), 2, 'window', now($wait_time_ns));
+
+        $this->assertTrue($result->isLimitExceeded());
+
+        // With 0.5 jitter factor, wait time should be between 10s and 15s (in nanoseconds)
+        $wait_with_jitter = $result->getWaitTime(0.5);
+        $this->assertGreaterThanOrEqual($wait_time_ns, $wait_with_jitter);
+        $this->assertLessThanOrEqual((int) ($wait_time_ns * 1.5), $wait_with_jitter);
+    }
+
+    public function testGetWaitTimeWithZeroJitterReturnsExactValue(): void
+    {
+        $wait_time_ns = 5_000_000_000;
+        $result = new LimitCheckResult('test', now(3), 2, 'window', now($wait_time_ns));
+
+        $this->assertTrue($result->isLimitExceeded());
+        $this->assertSame($wait_time_ns, $result->getWaitTime(0.0));
+    }
+
+    public function testGetWaitTimeSecondsReturnsZeroWhenLimitNotExceeded(): void
+    {
+        $result = new LimitCheckResult('test', now(1), 2, 'window', now(500_000_000));
+
+        $this->assertFalse($result->isLimitExceeded());
+        $this->assertSame(0, $result->getWaitTimeSeconds());
+    }
+
+    public function testGetWaitTimeSecondsRoundsUp(): void
     {
         // 1.5 seconds should round up to 2
         $result = new LimitCheckResult('test', now(3), 2, 'window', now(1_500_000_000));
 
         $this->assertTrue($result->isLimitExceeded());
-        $this->assertSame(2, $result->getWaitTime());
+        $this->assertSame(2, $result->getWaitTimeSeconds());
     }
 
-    public function testGetWaitTimeExactSeconds(): void
+    public function testGetWaitTimeSecondsExact(): void
     {
         // Exactly 3 seconds
         $result = new LimitCheckResult('test', now(3), 2, 'window', now(3_000_000_000));
 
         $this->assertTrue($result->isLimitExceeded());
-        $this->assertSame(3, $result->getWaitTime());
+        $this->assertSame(3, $result->getWaitTimeSeconds());
     }
 
-    public function testGetWaitTimeRoundsUpSmallFraction(): void
+    public function testGetWaitTimeSecondsRoundsUpSmallFraction(): void
     {
         // 1 nanosecond should round up to 1 second
         $result = new LimitCheckResult('test', now(3), 2, 'window', now(1));
 
         $this->assertTrue($result->isLimitExceeded());
-        $this->assertSame(1, $result->getWaitTime());
+        $this->assertSame(1, $result->getWaitTimeSeconds());
     }
 }

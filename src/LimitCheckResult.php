@@ -19,8 +19,9 @@ namespace SlidingWindowCounter\RateLimiter;
 
 use Later\Interfaces\Deferred;
 
-use function sprintf;
 use function ceil;
+use function random_int;
+use function sprintf;
 
 /**
  * Class representing the result of a rate limit check.
@@ -135,21 +136,35 @@ class LimitCheckResult
      * Returns nanoseconds to wait before the rate limit resets.
      * Returns 0 if limit is not exceeded.
      *
+     * When multiple workers compete for the same time slot, use the jitter_factor
+     * parameter to spread out retries and avoid thundering herd problems.
+     * The jitter adds a random delay of up to (wait_time * jitter_factor).
+     *
      * Usage:
-     *   usleep($result->getWaitTimeNs() / 1000);
-     *   // or
-     *   $ns = $result->getWaitTimeNs();
+     *   // Without jitter
+     *   usleep($result->getWaitTime() / 1000);
+     *
+     *   // With jitter (recommended for multiple workers)
+     *   $ns = $result->getWaitTime(0.5); // adds 0-50% random delay
      *   time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
      *
+     * @param float $jitter_factor Jitter factor (0.0 = no jitter, 0.5 = up to 50% extra delay).
      * @return int Nanoseconds to wait, or 0 if limit is not exceeded.
      */
-    public function getWaitTimeNs(): int
+    public function getWaitTime(float $jitter_factor = 0.0): int
     {
         if (!$this->isLimitExceeded()) {
             return 0;
         }
 
-        return $this->wait_time_ns->get();
+        $wait = $this->wait_time_ns->get();
+
+        if ($jitter_factor > 0.0) {
+            $jitter = (int) ($wait * $jitter_factor * random_int(0, 1000) / 1000);
+            $wait += $jitter;
+        }
+
+        return $wait;
     }
 
     /**
@@ -157,13 +172,13 @@ class LimitCheckResult
      * Returns 0 if limit is not exceeded.
      *
      * Usage:
-     *   sleep($result->getWaitTime());
+     *   sleep($result->getWaitTimeSeconds());
      *   // or for Retry-After header
-     *   header('Retry-After: ' . $result->getWaitTime());
+     *   header('Retry-After: ' . $result->getWaitTimeSeconds());
      *
      * @return int Seconds to wait (rounded up), or 0 if limit is not exceeded.
      */
-    public function getWaitTime(): int
+    public function getWaitTimeSeconds(): int
     {
         if (!$this->isLimitExceeded()) {
             return 0;

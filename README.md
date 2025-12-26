@@ -90,7 +90,7 @@ if ($windowResult->isLimitExceeded()) {
 
     // Return 429 Too Many Requests response with calculated wait time
     header('HTTP/1.1 429 Too Many Requests');
-    header('Retry-After: ' . $windowResult->getWaitTime());
+    header('Retry-After: ' . $windowResult->getWaitTimeSeconds());
     exit;
 }
 
@@ -103,7 +103,7 @@ if ($periodResult->isLimitExceeded()) {
 
     // Return 429 Too Many Requests response with calculated wait time
     header('HTTP/1.1 429 Too Many Requests');
-    header('Retry-After: ' . $periodResult->getWaitTime());
+    header('Retry-After: ' . $periodResult->getWaitTimeSeconds());
     exit;
 }
 ```
@@ -130,10 +130,13 @@ $limitType = $windowResult->getLimitType(); // "window" or "period"
 $message = $windowResult->getLimitExceededMessage();
 
 // Get wait time in seconds (rounded up) - useful for Retry-After header
-$waitSeconds = $windowResult->getWaitTime();
+$waitSeconds = $windowResult->getWaitTimeSeconds();
 
 // Get wait time in nanoseconds - useful for precise sleeping
-$waitNanoseconds = $windowResult->getWaitTimeNs();
+$waitNanoseconds = $windowResult->getWaitTime();
+
+// Get wait time with jitter to avoid thundering herd (0.5 = up to 50% extra delay)
+$waitWithJitter = $windowResult->getWaitTime(0.5);
 
 // Get the latest value in the current window
 $currentValue = $rateLimiter->getLatestValue();
@@ -180,18 +183,29 @@ foreach ($items as $item) {
 
     $result = $rateLimiter->checkWindowLimit(100);
     if ($result->isLimitExceeded()) {
-        // Wait until the rate limit resets
-        sleep($result->getWaitTime());
+        // Wait until the rate limit resets (seconds, rounded up)
+        sleep($result->getWaitTimeSeconds());
     }
 
-    // For more precise timing, use nanoseconds
+    // For precise timing, use nanoseconds
     $result = $rateLimiter->checkWindowLimit(100);
     if ($result->isLimitExceeded()) {
-        $ns = $result->getWaitTimeNs();
+        $ns = $result->getWaitTime();
         time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
     }
 
     processItem($item);
+}
+```
+
+When multiple workers compete for the same rate limit, use jitter to spread out retries and avoid thundering herd:
+
+```php
+$result = $rateLimiter->checkWindowLimit(100);
+if ($result->isLimitExceeded()) {
+    // Add up to 50% random delay to spread out competing workers
+    $ns = $result->getWaitTime(0.5);
+    time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
 }
 ```
 
@@ -215,7 +229,7 @@ public function process(ServerRequestInterface $request, RequestHandlerInterface
     if ($windowResult->isLimitExceeded()) {
         return $this->createRateLimitResponse(
             $windowResult->getLimitExceededMessage(),
-            $windowResult->getWaitTime()
+            $windowResult->getWaitTimeSeconds()
         );
     }
 
@@ -224,7 +238,7 @@ public function process(ServerRequestInterface $request, RequestHandlerInterface
     if ($periodResult->isLimitExceeded()) {
         return $this->createRateLimitResponse(
             $periodResult->getLimitExceededMessage(),
-            $periodResult->getWaitTime()
+            $periodResult->getWaitTimeSeconds()
         );
     }
     
@@ -259,7 +273,7 @@ try {
         // Return appropriate response with calculated wait time
         return $this->createRateLimitResponse(
             $windowResult->getLimitExceededMessage(),
-            $windowResult->getWaitTime()
+            $windowResult->getWaitTimeSeconds()
         );
     }
 } catch (Exception $e) {
