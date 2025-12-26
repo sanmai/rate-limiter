@@ -19,6 +19,7 @@ namespace Tests\SlidingWindowCounter\RateLimiter;
 
 use DuoClock\DuoClock;
 use DuoClock\Interfaces\DuoClockInterface;
+use DuoClock\TimeSpy;
 use SlidingWindowCounter\Cache\CounterCache;
 use SlidingWindowCounter\Helper\Frame;
 use SlidingWindowCounter\SlidingWindowCounter;
@@ -73,7 +74,7 @@ final class RateLimiterTest extends TestCase
             ->method('increment')
             ->with('test', 1);
 
-        $rate_limiter = new RateLimiter('test', $mock, 60, new DuoClock());
+        $rate_limiter = new RateLimiter('test', $mock, 60, new TimeSpy());
         $rate_limiter->increment();
     }
 
@@ -87,7 +88,7 @@ final class RateLimiterTest extends TestCase
             ->method('increment')
             ->with('test', 2);
 
-        $rate_limiter = new RateLimiter('test', $mock, 60, new DuoClock());
+        $rate_limiter = new RateLimiter('test', $mock, 60, new TimeSpy());
         $rate_limiter->increment(2);
     }
 
@@ -102,7 +103,7 @@ final class RateLimiterTest extends TestCase
             ->with('test')
             ->willReturn(5.4);
 
-        $rate_limiter = new RateLimiter('test', $mock, 60, new DuoClock());
+        $rate_limiter = new RateLimiter('test', $mock, 60, new TimeSpy());
         $this->assertSame(5, $rate_limiter->getLatestValue());
     }
 
