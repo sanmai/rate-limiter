@@ -27,7 +27,6 @@ use SlidingWindowCounter\SlidingWindowCounter;
 
 use function Later\later;
 use function Pipeline\take;
-use function floor;
 
 /**
  * A rate limiter.
@@ -35,6 +34,8 @@ use function floor;
  */
 class RateLimiter
 {
+    private const NANOSECONDS_PER_SECOND = 1_000_000_000;
+
     /**
      * Creates a new RateLimiter instance.
      */
@@ -51,11 +52,7 @@ class RateLimiter
          * The size of the sliding window in seconds.
          * @var int<1, max>
          */
-        private readonly int $window_size,
-        /**
-         * The clock instance for time operations.
-         */
-        private readonly DuoClockInterface $clock
+        private readonly int $window_size
     ) {}
 
     /**
@@ -75,8 +72,6 @@ class RateLimiter
         Cache\CounterCache $counter_cache,
         ?DuoClockInterface $clock = null
     ): self {
-        $clock ??= new DuoClock();
-
         return new self(
             $subject,
             new SlidingWindowCounter(
@@ -84,10 +79,9 @@ class RateLimiter
                 $window_size,
                 $observation_period,
                 $counter_cache,
-                $clock
+                $clock ?? new DuoClock()
             ),
-            $window_size,
-            $clock
+            $window_size
         );
     }
 
@@ -148,7 +142,7 @@ class RateLimiter
             later(fn() => yield $this->getLatestValue()),
             $window_limit,
             'window',
-            later(fn() => yield $this->getWindowWaitTimeNs())
+            $this->window_size * self::NANOSECONDS_PER_SECOND
         );
     }
 
@@ -184,26 +178,7 @@ class RateLimiter
             later(fn() => yield $this->getTotal()),
             $period_limit,
             'period',
-            later(fn() => yield $this->getPeriodWaitTimeNs())
+            $this->window_size * self::NANOSECONDS_PER_SECOND
         );
-    }
-
-    /**
-     * Calculates nanoseconds until the current window boundary ends.
-     */
-    private function getWindowWaitTimeNs(): int
-    {
-        $microtime = $this->clock->microtime();
-        $window_end_time = (floor($microtime / $this->window_size) + 1) * $this->window_size;
-
-        return (int) (($window_end_time - $microtime) * 1_000_000_000);
-    }
-
-    /**
-     * Calculates nanoseconds to wait for period limit (one full window).
-     */
-    private function getPeriodWaitTimeNs(): int
-    {
-        return $this->window_size * 1_000_000_000;
     }
 }

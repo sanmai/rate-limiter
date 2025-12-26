@@ -61,10 +61,10 @@ class LimitCheckResult
         private readonly string $limit_type,
 
         /**
-         * Nanoseconds to wait before the rate limit resets.
-         * @var Deferred<int>
+         * Window size in nanoseconds for wait time calculation.
+         * @var int<1, max>
          */
-        private readonly Deferred $wait_time_ns
+        private readonly int $window_size_ns
     ) {}
 
     /**
@@ -162,7 +162,10 @@ class LimitCheckResult
             return 0;
         }
 
-        $wait = $this->wait_time_ns->get();
+        $count = $this->count->get();
+
+        // Assuming uniform distribution: wait_time = (count - limit) / count * window_size
+        $wait = (int) (($count - $this->limit) / $count * $this->window_size_ns);
 
         if ($jitter_factor > 0.0) {
             $jitter = (int) ($wait * $jitter_factor * random_int(0, self::JITTER_PRECISION) / self::JITTER_PRECISION);
@@ -189,6 +192,11 @@ class LimitCheckResult
             return 0;
         }
 
-        return (int) ceil($this->wait_time_ns->get() / self::NANOSECONDS_PER_SECOND);
+        $count = $this->count->get();
+
+        // Assuming uniform distribution: wait_time = (count - limit) / count * window_size
+        $wait_ns = ($count - $this->limit) / $count * $this->window_size_ns;
+
+        return (int) ceil($wait_ns / self::NANOSECONDS_PER_SECOND);
     }
 }

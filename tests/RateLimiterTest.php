@@ -20,9 +20,7 @@ declare(strict_types=1);
 
 namespace Tests\SlidingWindowCounter\RateLimiter;
 
-use DuoClock\DuoClock;
 use DuoClock\Interfaces\DuoClockInterface;
-use DuoClock\TimeSpy;
 use SlidingWindowCounter\Cache\CounterCache;
 use SlidingWindowCounter\SlidingWindowCounter;
 use SlidingWindowCounter\RateLimiter\RateLimiter;
@@ -66,7 +64,7 @@ final class RateLimiterTest extends TestCase
             ->method('increment')
             ->with('test', 1);
 
-        $rate_limiter = new RateLimiter('test', $mock, 60, new TimeSpy());
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $rate_limiter->increment();
     }
 
@@ -80,7 +78,7 @@ final class RateLimiterTest extends TestCase
             ->method('increment')
             ->with('test', 2);
 
-        $rate_limiter = new RateLimiter('test', $mock, 60, new TimeSpy());
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $rate_limiter->increment(2);
     }
 
@@ -95,7 +93,7 @@ final class RateLimiterTest extends TestCase
             ->with('test')
             ->willReturn(5.4);
 
-        $rate_limiter = new RateLimiter('test', $mock, 60, new TimeSpy());
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $this->assertSame(5, $rate_limiter->getLatestValue());
     }
 
@@ -122,7 +120,7 @@ final class RateLimiterTest extends TestCase
             ->with('test')
             ->willReturn($latest_value);
 
-        $rate_limiter = new RateLimiter('test', $mock, 60, new DuoClock());
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $result = $rate_limiter->checkWindowLimit($limit);
 
         $this->assertSame($is_limit_exceeded, $result->isLimitExceeded());
@@ -143,7 +141,7 @@ final class RateLimiterTest extends TestCase
             ->with('test')
             ->willReturn([1.0, 1.9, 3.1]);
 
-        $rate_limiter = new RateLimiter('test', $mock, 60, new DuoClock());
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $this->assertSame(6, $rate_limiter->getTotal());
     }
 
@@ -170,7 +168,7 @@ final class RateLimiterTest extends TestCase
             ->with('test')
             ->willReturn($time_series);
 
-        $rate_limiter = new RateLimiter('test', $mock, 60, new DuoClock());
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $result = $rate_limiter->checkPeriodLimit($limit);
 
         $this->assertSame($is_limit_exceeded, $result->isLimitExceeded());
@@ -191,7 +189,7 @@ final class RateLimiterTest extends TestCase
             ->getMock();
         $counter_mock->method('getLatestValue')->willReturn(100.0);
 
-        $rate_limiter = new RateLimiter('test', $counter_mock, $window_size, $clock_mock);
+        $rate_limiter = new RateLimiter('test', $counter_mock, $window_size);
         $result = $rate_limiter->checkWindowLimit(50);
 
         $this->assertTrue($result->isLimitExceeded());
@@ -204,26 +202,24 @@ final class RateLimiterTest extends TestCase
     public function testWindowWaitTimeCalculation(): void
     {
         $window_size = 60;
-        // At time 12345.5, the current window started at 12300 (12345 - 12345 % 60 = 12300)
-        // Next window starts at 12360, so wait time is 12360 - 12345.5 = 14.5 seconds
         $clock_mock = $this->createMock(DuoClockInterface::class);
-        $clock_mock->method('microtime')->willReturn(12345.5);
 
         $counter_mock = $this->getMockBuilder(SlidingWindowCounter::class)
             ->disableOriginalConstructor()
             ->getMock();
         $counter_mock->method('getLatestValue')->willReturn(100.0);
 
-        $rate_limiter = new RateLimiter('test', $counter_mock, $window_size, $clock_mock);
+        $rate_limiter = new RateLimiter('test', $counter_mock, $window_size);
         $result = $rate_limiter->checkWindowLimit(50);
 
         $this->assertTrue($result->isLimitExceeded());
 
-        // Expected: (12360 - 12345.5) * 1_000_000_000 = 14.5 * 1_000_000_000 = 14_500_000_000
-        $this->assertSame(14_500_000_000, $result->getWaitTime());
+        // count=100, limit=50, window=60s
+        // wait = (100 - 50) / 100 * 60s = 0.5 * 60 = 30 seconds
+        $this->assertSame(30_000_000_000, $result->getWaitTime());
     }
 
-    public function testPeriodWaitTimeIsOneWindow(): void
+    public function testPeriodWaitTimeCalculation(): void
     {
         $window_size = 60;
         $clock_mock = $this->createMock(DuoClockInterface::class);
@@ -231,15 +227,17 @@ final class RateLimiterTest extends TestCase
         $counter_mock = $this->getMockBuilder(SlidingWindowCounter::class)
             ->disableOriginalConstructor()
             ->getMock();
+        // Total = 50 + 50 + 50 = 150
         $counter_mock->method('getTimeSeries')->willReturn([50.0, 50.0, 50.0]);
 
-        $rate_limiter = new RateLimiter('test', $counter_mock, $window_size, $clock_mock);
+        $rate_limiter = new RateLimiter('test', $counter_mock, $window_size);
         $result = $rate_limiter->checkPeriodLimit(100);
 
         $this->assertTrue($result->isLimitExceeded());
 
-        // Period wait time is always one full window
-        $this->assertSame($window_size * 1_000_000_000, $result->getWaitTime());
+        // count=150, limit=100, window=60s
+        // wait = (150 - 100) / 150 * 60s = 50/150 * 60 = 20 seconds
+        $this->assertSame(20_000_000_000, $result->getWaitTime());
     }
 
     public function testWaitTimeReturnsZeroWhenLimitNotExceeded(): void
@@ -252,7 +250,7 @@ final class RateLimiterTest extends TestCase
             ->getMock();
         $counter_mock->method('getLatestValue')->willReturn(10.0);
 
-        $rate_limiter = new RateLimiter('test', $counter_mock, 60, $clock_mock);
+        $rate_limiter = new RateLimiter('test', $counter_mock, 60);
         $result = $rate_limiter->checkWindowLimit(100);
 
         $this->assertFalse($result->isLimitExceeded());

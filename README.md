@@ -179,15 +179,14 @@ When you control both ends (e.g., a background job calling your own API), you ca
 use DuoClock\DuoClock;
 
 $clock = new DuoClock();
-$rateLimiter = RateLimiter::create($jobId, 'batch_processing', 60, 3600, $cache, $clock);
+$rateLimiter = RateLimiter::create($jobId, 'batch_processing', 60, 3600, $cache);
 
 foreach ($items as $item) {
     $rateLimiter->increment();
 
     $result = $rateLimiter->checkWindowLimit(100);
     if ($result->isLimitExceeded()) {
-        // Wait until the rate limit resets
-        // For precise timing, using nanoseconds with DuoClock
+        // Wait until the rate limit resets using DuoClock's nanosleep
         $clock->nanosleep($result->getWaitTime());
     }
 
@@ -211,6 +210,8 @@ if ($result->isLimitExceeded()) {
     $clock->nanosleep($result->getWaitTime(0.5));
 }
 ```
+
+**Note on wait time calculation:** The wait time assumes a uniform distribution of requests across the window. If requests are bursty (clustered at the start or end of the window), the actual required wait time may differ. For most use cases this approximation works well.
 
 ### Implementing in middleware
 
