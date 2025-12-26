@@ -23,8 +23,7 @@
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": ">=0.10",
         "phpunit/phpunit": ">=10 <12",
-        "sanmai/phpstan-rules": "^0.3.10",
-        "vimeo/psalm": ">=2"
+        "sanmai/phpstan-rules": "^0.3.10"
     },
     "autoload": {
         "psr-4": {

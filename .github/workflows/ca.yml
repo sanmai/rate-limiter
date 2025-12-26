@@ -42,6 +42,6 @@ jobs:
         run: |
           composer install --prefer-dist --no-progress
 
-      - name: Run Psalm
+      - name: Run static analysis
         run: |
-          php vendor/bin/psalm --output-format=github --long-progress --php-version=${{ matrix.php-version }}
+          make sa
