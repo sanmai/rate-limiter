@@ -139,13 +139,13 @@ final class LimitCheckResultTest extends TestCase
     public function testGetWaitTimeWithSmallExcess(): void
     {
         // count=101, limit=100, window=60s
-        // wait = (101 - 100) / 101 * 60 = 1/101 * 60 = 0.594... seconds
+        // wait = (101 - 100) / 101 * 60 = 1/101 * 60 = 0.594059405... seconds
         $window_size = 60;
         $result = new LimitCheckResult('test', now(101), 100, 'window', $window_size);
 
         $this->assertTrue($result->isLimitExceeded());
-        // 0.594 seconds = 594_059_405 nanoseconds (truncated)
-        $this->assertSame(594_059_405, $result->getWaitTime());
+        // 0.594... seconds = 594_059_406 nanoseconds (rounded up)
+        $this->assertSame(594_059_406, $result->getWaitTime());
         // Rounds up to 1 second
         $this->assertSame(1, $result->getWaitTimeSeconds());
     }

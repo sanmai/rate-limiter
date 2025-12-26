@@ -137,6 +137,15 @@ class LimitCheckResult
         );
     }
 
+    private function getWaitTimeRaw(int|float $scale = 1.0): int
+    {
+        // Assuming uniform distribution: we need to wait out X% of the window
+        $excessRatio = ($this->count->get() - $this->limit) / $this->count->get();
+
+        // To maintain numeric stability multiply only after
+        return (int) ceil($scale * $this->window_size * $excessRatio);
+    }
+
     /**
      * Returns nanoseconds to wait before the rate limit resets.
      * Returns 0 if limit is not exceeded.
@@ -162,10 +171,8 @@ class LimitCheckResult
             return 0;
         }
 
-        $count = $this->count->get();
-
         // Assuming uniform distribution: wait_time = (count - limit) / count * window_size
-        $wait = (int) (($count - $this->limit) / $count * $this->window_size * self::NANOSECONDS_PER_SECOND);
+        $wait = $this->getWaitTimeRaw(self::NANOSECONDS_PER_SECOND);
 
         if ($jitter_factor > 0.0) {
             $jitter = (int) ($wait * $jitter_factor * random_int(0, self::JITTER_PRECISION) / self::JITTER_PRECISION);
@@ -192,9 +199,7 @@ class LimitCheckResult
             return 0;
         }
 
-        $count = $this->count->get();
 
-        // Assuming uniform distribution: wait_time = (count - limit) / count * window_size
-        return (int) ceil(($count - $this->limit) / $count * $this->window_size);
+        return $this->getWaitTimeRaw();
     }
 }
