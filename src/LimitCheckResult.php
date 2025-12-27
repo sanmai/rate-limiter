@@ -22,6 +22,7 @@ namespace SlidingWindowCounter\RateLimiter;
 
 use Later\Interfaces\Deferred;
 
+use function assert;
 use function ceil;
 use function random_int;
 use function sprintf;
@@ -140,10 +141,12 @@ class LimitCheckResult
 
     private function getWaitTimeRaw(int|float $scale = 1.0): int
     {
+        assert($this->isLimitExceeded());
+
         // Assuming uniform distribution: we need to wait out X% of the window
         $excessRatio = ($this->count->get() - $this->limit) / $this->count->get();
 
-        // To maintain numeric stability multiply only after (dealing with 1e9 scale here)
+        // To maintain numeric stability multiply only after (dealing with 1E9 scale here)
         return (int) ceil($scale * $this->window_size * $excessRatio);
     }
 
@@ -156,7 +159,7 @@ class LimitCheckResult
      * parameter to spread out retries and avoid thundering herd problems.
      * The jitter adds a random delay of up to (wait_time * jitter_factor).
      *
-     * Usage with DuoClock (recommended):
+     * Usage with DuoClock:
      *   $clock->nanosleep($result->getWaitTime());
      *   $clock->nanosleep($result->getWaitTime(0.5)); // with jitter
      *
@@ -173,15 +176,13 @@ class LimitCheckResult
             return 0;
         }
 
-        // Assuming uniform distribution: wait_time = (count - limit) / count * window_size
         $wait = $this->getWaitTimeRaw(self::NANOSECONDS_PER_SECOND);
 
-        if ($jitter_factor > 0.0) {
-            $jitter = (int) ($wait * $jitter_factor * random_int(0, self::JITTER_PRECISION) / self::JITTER_PRECISION);
-            $wait += $jitter;
+        if ($jitter_factor <= 0.0) {
+            return $wait;
         }
 
-        return $wait;
+        return $wait + (int) ($wait * $jitter_factor * random_int(0, self::JITTER_PRECISION) / self::JITTER_PRECISION);
     }
 
     /**
