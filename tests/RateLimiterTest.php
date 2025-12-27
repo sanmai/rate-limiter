@@ -20,7 +20,6 @@ declare(strict_types=1);
 
 namespace Tests\SlidingWindowCounter\RateLimiter;
 
-use DuoClock\Interfaces\DuoClockInterface;
 use SlidingWindowCounter\Cache\CounterCache;
 use SlidingWindowCounter\SlidingWindowCounter;
 use SlidingWindowCounter\RateLimiter\RateLimiter;
@@ -200,7 +199,6 @@ final class RateLimiterTest extends TestCase
     public function testWindowWaitTimeCalculation(): void
     {
         $window_size = 60;
-        $clock_mock = $this->createMock(DuoClockInterface::class);
 
         $counter_mock = $this->getMockBuilder(SlidingWindowCounter::class)
             ->disableOriginalConstructor()
@@ -220,7 +218,6 @@ final class RateLimiterTest extends TestCase
     public function testPeriodWaitTimeCalculation(): void
     {
         $window_size = 60;
-        $clock_mock = $this->createMock(DuoClockInterface::class);
 
         $counter_mock = $this->getMockBuilder(SlidingWindowCounter::class)
             ->disableOriginalConstructor()
@@ -240,9 +237,6 @@ final class RateLimiterTest extends TestCase
 
     public function testWaitTimeReturnsZeroWhenLimitNotExceeded(): void
     {
-        $clock_mock = $this->createMock(DuoClockInterface::class);
-        $clock_mock->method('microtime')->willReturn(12345.5);
-
         $counter_mock = $this->getMockBuilder(SlidingWindowCounter::class)
             ->disableOriginalConstructor()
             ->getMock();
