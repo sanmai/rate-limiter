@@ -87,10 +87,10 @@ if ($windowResult->isLimitExceeded()) {
     // Window limit exceeded - client is sending requests too quickly
     echo $windowResult->getLimitExceededMessage();
     // Example output: "Rate limit exceeded for 192.168.1.1: 120 actions in the window (limit: 100)"
-    
+
     // Return 429 Too Many Requests response
     header('HTTP/1.1 429 Too Many Requests');
-    header('Retry-After: 60');
+    header(sprintf('Retry-After: %d', $windowResult->getWaitTimeSeconds()));
     exit;
 }
 
@@ -100,10 +100,10 @@ $periodResult = $rateLimiter->checkPeriodLimit(1000);
 if ($periodResult->isLimitExceeded()) {
     // Period limit exceeded - client has sent too many requests in the observation period
     echo $periodResult->getLimitExceededMessage();
-    
+
     // Return 429 Too Many Requests response
     header('HTTP/1.1 429 Too Many Requests');
-    header('Retry-After: 3600');
+    header(sprintf('Retry-After: %d', $periodResult->getWaitTimeSeconds()));
     exit;
 }
 ```
@@ -128,6 +128,15 @@ $limitType = $windowResult->getLimitType(); // "window" or "period"
 
 // Get the limit message (only if exceeded)
 $message = $windowResult->getLimitExceededMessage();
+
+// Get wait time in seconds (rounded up) - useful for Retry-After header
+$waitSeconds = $windowResult->getWaitTimeSeconds();
+
+// Get wait time in nanoseconds - useful for precise sleeping
+$waitNanoseconds = $windowResult->getWaitTime();
+
+// Get wait time with jitter to avoid thundering herd (0.5 = up to 50% extra delay)
+$waitWithJitter = $windowResult->getWaitTime(0.5);
 
 // Get the latest value in the current window
 $currentValue = $rateLimiter->getLatestValue();
@@ -162,6 +171,48 @@ $sensitiveWindowResult = $sensitiveLimiter->checkWindowLimit(10);
 $sensitivePeriodResult = $sensitiveLimiter->checkPeriodLimit(50);
 ```
 
+### Self-throttling for background jobs
+
+When you control both ends (e.g., a background job calling your own API), you can use the wait time to self-throttle instead of failing:
+
+```php
+use DuoClock\DuoClock;
+
+$clock = new DuoClock();
+$rateLimiter = RateLimiter::create($jobId, 'batch_processing', 60, 3600, $cache);
+
+foreach ($items as $item) {
+    $rateLimiter->increment();
+
+    $result = $rateLimiter->checkWindowLimit(100);
+    if ($result->isLimitExceeded()) {
+        // Wait until the rate limit resets using DuoClock's nanosleep
+        $clock->nanosleep($result->getWaitTime());
+    }
+
+    processItem($item);
+}
+```
+
+If you're not using [DuoClock](https://github.com/sanmai/DuoClock), you can use PHP's `time_nanosleep()` directly:
+
+```php
+$ns = $result->getWaitTime();
+time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
+```
+
+When multiple workers compete for the same rate limit, use jitter to spread out retries and avoid thundering herd:
+
+```php
+$result = $rateLimiter->checkWindowLimit(100);
+if ($result->isLimitExceeded()) {
+    // Add up to 50% random delay to spread out competing workers
+    $clock->nanosleep($result->getWaitTime(0.5));
+}
+```
+
+**Note on wait time calculation:** The wait time assumes a uniform distribution of requests across the window. If requests are bursty (clustered at the start or end of the window), the actual required wait time may differ. For most use cases this approximation works well.
+
 ### Implementing in middleware
 
 Here's how you might implement rate limiting in a PSR-15 middleware:
@@ -182,16 +233,16 @@ public function process(ServerRequestInterface $request, RequestHandlerInterface
     if ($windowResult->isLimitExceeded()) {
         return $this->createRateLimitResponse(
             $windowResult->getLimitExceededMessage(),
-            60
+            $windowResult->getWaitTimeSeconds()
         );
     }
-    
+
     // Check period limit (e.g., 1000 requests per hour)
     $periodResult = $rateLimiter->checkPeriodLimit(1000);
     if ($periodResult->isLimitExceeded()) {
         return $this->createRateLimitResponse(
             $periodResult->getLimitExceededMessage(),
-            3600
+            $periodResult->getWaitTimeSeconds()
         );
     }
     
@@ -223,10 +274,10 @@ try {
             'type' => $windowResult->getLimitType()
         ]);
         
-        // Return appropriate response
+        // Return appropriate response with calculated wait time
         return $this->createRateLimitResponse(
             $windowResult->getLimitExceededMessage(),
-            60
+            $windowResult->getWaitTimeSeconds()
         );
     }
 } catch (Exception $e) {
