@@ -66,7 +66,7 @@ class LimitCheckResult
          * Window size in seconds for wait time calculation.
          * @var int<1, max>
          */
-        private readonly int $window_size
+        private readonly int $window_size,
     ) {}
 
     /**

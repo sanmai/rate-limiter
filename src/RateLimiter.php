@@ -48,7 +48,7 @@ class RateLimiter
          * The size of the sliding window in seconds.
          * @var int<1, max>
          */
-        private readonly int $window_size
+        private readonly int $window_size,
     ) {}
 
     /**
