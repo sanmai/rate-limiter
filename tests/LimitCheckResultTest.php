@@ -78,6 +78,7 @@ final class LimitCheckResultTest extends TestCase
 
         $this->assertTrue($result->isLimitExceeded());
         $this->assertSame(10_000_000_000, $result->getWaitTime());
+        $this->assertSame(10, $result->getWaitTimeSeconds());
     }
 
     public function testGetWaitTimeWithJitter(): void
