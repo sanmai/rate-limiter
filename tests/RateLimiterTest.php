@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace Tests\SlidingWindowCounter\RateLimiter;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use SlidingWindowCounter\Cache\CounterCache;
 use SlidingWindowCounter\SlidingWindowCounter;
 use SlidingWindowCounter\RateLimiter\RateLimiter;
@@ -53,46 +54,50 @@ final class RateLimiterTest extends TestCase
         $rate_limiter->increment(1);
     }
 
-    public function testIncrementDefault()
+    /**
+     * @return SlidingWindowCounter&MockObject
+     */
+    private function getSlidingWindowCounter()
     {
-        $mock = $this->getMockBuilder(SlidingWindowCounter::class)
+        return $this->getMockBuilder(SlidingWindowCounter::class)
             ->disableOriginalConstructor()
             ->getMock();
+    }
+
+    public function testIncrementDefault()
+    {
+        $mock = $this->getSlidingWindowCounter();
 
         $mock->expects($this->once())
             ->method('increment')
             ->with('test', 1);
 
-        $rate_limiter = new RateLimiter('test', $mock);
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $rate_limiter->increment();
     }
 
     public function testIncrement()
     {
-        $mock = $this->getMockBuilder(SlidingWindowCounter::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mock = $this->getSlidingWindowCounter();
 
         $mock->expects($this->once())
             ->method('increment')
             ->with('test', 2);
 
-        $rate_limiter = new RateLimiter('test', $mock);
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $rate_limiter->increment(2);
     }
 
     public function testGetLatest()
     {
-        $mock = $this->getMockBuilder(SlidingWindowCounter::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mock = $this->getSlidingWindowCounter();
 
         $mock->expects($this->once())
             ->method('getLatestValue')
             ->with('test')
             ->willReturn(5.4);
 
-        $rate_limiter = new RateLimiter('test', $mock);
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $this->assertSame(5, $rate_limiter->getLatestValue());
     }
 
@@ -110,16 +115,14 @@ final class RateLimiterTest extends TestCase
      */
     public function testCheckWindowLimit(float $latest_value, int $limit, bool $is_limit_exceeded)
     {
-        $mock = $this->getMockBuilder(SlidingWindowCounter::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mock = $this->getSlidingWindowCounter();
 
         $mock->expects($this->once())
             ->method('getLatestValue')
             ->with('test')
             ->willReturn($latest_value);
 
-        $rate_limiter = new RateLimiter('test', $mock);
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $result = $rate_limiter->checkWindowLimit($limit);
 
         $this->assertSame($is_limit_exceeded, $result->isLimitExceeded());
@@ -131,16 +134,14 @@ final class RateLimiterTest extends TestCase
 
     public function testGetTotal()
     {
-        $mock = $this->getMockBuilder(SlidingWindowCounter::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mock = $this->getSlidingWindowCounter();
 
         $mock->expects($this->once())
             ->method('getTimeSeries')
             ->with('test')
             ->willReturn([1.0, 1.9, 3.1]);
 
-        $rate_limiter = new RateLimiter('test', $mock);
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $this->assertSame(6, $rate_limiter->getTotal());
     }
 
@@ -158,16 +159,14 @@ final class RateLimiterTest extends TestCase
      */
     public function testCheckPeriodLimit(array $time_series, int $limit, bool $is_limit_exceeded)
     {
-        $mock = $this->getMockBuilder(SlidingWindowCounter::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mock = $this->getSlidingWindowCounter();
 
         $mock->expects($this->once())
             ->method('getTimeSeries')
             ->with('test')
             ->willReturn($time_series);
 
-        $rate_limiter = new RateLimiter('test', $mock);
+        $rate_limiter = new RateLimiter('test', $mock, 60);
         $result = $rate_limiter->checkPeriodLimit($limit);
 
         $this->assertSame($is_limit_exceeded, $result->isLimitExceeded());
@@ -175,5 +174,69 @@ final class RateLimiterTest extends TestCase
         $this->assertSame((int) array_sum($time_series), $result->getCount());
         $this->assertSame($limit, $result->getLimit());
         $this->assertSame('period', $result->getLimitType());
+    }
+
+    public function testWindowWaitTimeIsWithinWindowSize(): void
+    {
+        $window_size = 60;
+
+        $counter_mock = $this->getSlidingWindowCounter();
+        $counter_mock->method('getLatestValue')->willReturn(100.0);
+
+        $rate_limiter = new RateLimiter('test', $counter_mock, $window_size);
+        $result = $rate_limiter->checkWindowLimit(50);
+
+        $this->assertTrue($result->isLimitExceeded());
+
+        $wait_time_ns = $result->getWaitTime();
+        $this->assertGreaterThan(0, $wait_time_ns);
+        $this->assertLessThanOrEqual($window_size * 1_000_000_000, $wait_time_ns);
+    }
+
+    public function testWindowWaitTimeCalculation(): void
+    {
+        $window_size = 60;
+
+        $counter_mock = $this->getSlidingWindowCounter();
+        $counter_mock->method('getLatestValue')->willReturn(100.0);
+
+        $rate_limiter = new RateLimiter('test', $counter_mock, $window_size);
+        $result = $rate_limiter->checkWindowLimit(50);
+
+        $this->assertTrue($result->isLimitExceeded());
+
+        // count=100, limit=50, window=60s
+        // wait = (100 - 50) / 100 * 60s = 0.5 * 60 = 30 seconds
+        $this->assertSame(30_000_000_000, $result->getWaitTime());
+    }
+
+    public function testPeriodWaitTimeCalculation(): void
+    {
+        $window_size = 60;
+
+        $counter_mock = $this->getSlidingWindowCounter();
+        // Total = 50 + 50 + 50 = 150
+        $counter_mock->method('getTimeSeries')->willReturn([50.0, 50.0, 50.0]);
+
+        $rate_limiter = new RateLimiter('test', $counter_mock, $window_size);
+        $result = $rate_limiter->checkPeriodLimit(100);
+
+        $this->assertTrue($result->isLimitExceeded());
+
+        // count=150, limit=100, window=60s
+        // wait = (150 - 100) / 150 * 60s = 50/150 * 60 = 20 seconds
+        $this->assertSame(20, $result->getWaitTimeSeconds());
+    }
+
+    public function testWaitTimeReturnsZeroWhenLimitNotExceeded(): void
+    {
+        $counter_mock = $this->getSlidingWindowCounter();
+        $counter_mock->method('getLatestValue')->willReturn(10.0);
+
+        $rate_limiter = new RateLimiter('test', $counter_mock, 60);
+        $result = $rate_limiter->checkWindowLimit(100);
+
+        $this->assertFalse($result->isLimitExceeded());
+        $this->assertSame(0, $result->getWaitTime());
     }
 }

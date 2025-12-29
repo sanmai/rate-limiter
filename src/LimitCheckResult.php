@@ -22,6 +22,9 @@ namespace SlidingWindowCounter\RateLimiter;
 
 use Later\Interfaces\Deferred;
 
+use function assert;
+use function ceil;
+use function random_int;
 use function sprintf;
 
 /**
@@ -30,6 +33,9 @@ use function sprintf;
  */
 class LimitCheckResult
 {
+    private const NANOSECONDS_PER_SECOND = 1_000_000_000;
+    private const JITTER_PRECISION = 1000;
+
     /**
      * Creates a new limit check result.
      */
@@ -54,7 +60,13 @@ class LimitCheckResult
         /**
          * A descriptive name for this limit type (e.g., "window", "period").
          */
-        private readonly string $limit_type
+        private readonly string $limit_type,
+
+        /**
+         * Window size in seconds for wait time calculation.
+         * @var int<1, max>
+         */
+        private readonly int $window_size,
     ) {}
 
     /**
@@ -125,5 +137,72 @@ class LimitCheckResult
             $this->limit_type,
             $this->limit
         );
+    }
+
+    private function getWaitTimeRaw(int|float $scale = 1.0): int
+    {
+        assert($this->isLimitExceeded());
+
+        // Assuming uniform distribution: we need to wait out X% of the window
+        $excessRatio = ($this->count->get() - $this->limit) / $this->count->get();
+
+        // To maintain numeric stability multiply only after (dealing with 1E9 scale here)
+        return (int) ceil($scale * $this->window_size * $excessRatio);
+    }
+
+    /**
+     * Returns estimated nanoseconds to wait for the count to drop below the limit.
+     * Assumes uniform request distribution across the window.
+     * Returns 0 if limit is not exceeded.
+     *
+     * When multiple workers compete for the same time slot, use the jitter_factor
+     * parameter to spread out retries and avoid thundering herd problems.
+     * The jitter adds a random delay of up to (wait_time * jitter_factor).
+     *
+     * Usage with DuoClock:
+     *   $clock->nanosleep($result->getWaitTime());
+     *   $clock->nanosleep($result->getWaitTime(0.5)); // with jitter
+     *
+     * Usage with PHP's time_nanosleep():
+     *   $ns = $result->getWaitTime();
+     *   time_nanosleep(intdiv($ns, 1_000_000_000), $ns % 1_000_000_000);
+     *
+     * @param float $jitter_factor Jitter factor (0.0 = no jitter, 0.5 = up to 50% extra delay).
+     * @return int Nanoseconds to wait, or 0 if limit is not exceeded.
+     */
+    public function getWaitTime(float $jitter_factor = 0.0): int
+    {
+        if (!$this->isLimitExceeded()) {
+            return 0;
+        }
+
+        $wait = $this->getWaitTimeRaw(self::NANOSECONDS_PER_SECOND);
+
+        if ($jitter_factor <= 0.0) {
+            return $wait;
+        }
+
+        return $wait + (int) ($wait * $jitter_factor * random_int(0, self::JITTER_PRECISION) / self::JITTER_PRECISION);
+    }
+
+    /**
+     * Returns estimated seconds to wait for the count to drop below the limit (rounded up).
+     * Assumes uniform request distribution across the window.
+     * Returns 0 if limit is not exceeded.
+     *
+     * Usage:
+     *   sleep($result->getWaitTimeSeconds());
+     *   // or for Retry-After header
+     *   header(sprintf('Retry-After: %d', $result->getWaitTimeSeconds()));
+     *
+     * @return int Seconds to wait (rounded up), or 0 if limit is not exceeded.
+     */
+    public function getWaitTimeSeconds(): int
+    {
+        if (!$this->isLimitExceeded()) {
+            return 0;
+        }
+
+        return $this->getWaitTimeRaw();
     }
 }

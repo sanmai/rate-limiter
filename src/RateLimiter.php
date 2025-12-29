@@ -20,8 +20,8 @@ declare(strict_types=1);
 
 namespace SlidingWindowCounter\RateLimiter;
 
-use SlidingWindowCounter\SlidingWindowCounter;
 use SlidingWindowCounter\Cache;
+use SlidingWindowCounter\SlidingWindowCounter;
 
 use function Later\later;
 use function Pipeline\take;
@@ -43,7 +43,12 @@ class RateLimiter
         /**
          * The sliding window counter instance.
          */
-        private readonly SlidingWindowCounter $counter
+        private readonly SlidingWindowCounter $counter,
+        /**
+         * The size of the sliding window in seconds.
+         * @var int<1, max>
+         */
+        private readonly int $window_size,
     ) {}
 
     /**
@@ -68,7 +73,8 @@ class RateLimiter
                 $window_size,
                 $observation_period,
                 $counter_cache
-            )
+            ),
+            $window_size
         );
     }
 
@@ -128,7 +134,8 @@ class RateLimiter
             $this->subject,
             later(fn() => yield $this->getLatestValue()),
             $window_limit,
-            'window'
+            'window',
+            $this->window_size
         );
     }
 
@@ -163,7 +170,8 @@ class RateLimiter
             $this->subject,
             later(fn() => yield $this->getTotal()),
             $period_limit,
-            'period'
+            'period',
+            $this->window_size
         );
     }
 }
