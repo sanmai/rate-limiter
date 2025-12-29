@@ -230,9 +230,7 @@ final class RateLimiterTest extends TestCase
 
     public function testWaitTimeReturnsZeroWhenLimitNotExceeded(): void
     {
-        $counter_mock = $this->getMockBuilder(SlidingWindowCounter::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $counter_mock = $this->getSlidingWindowCounter();
         $counter_mock->method('getLatestValue')->willReturn(10.0);
 
         $rate_limiter = new RateLimiter('test', $counter_mock, 60);
